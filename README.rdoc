@@ -1,18 +1,27 @@
 = KingPlaceholder
 
-Add placeholder substitution for strings:
+This gem was extraced from SalesKing where it handles placeholders substitution
+for user supplied email-, text- and export- templates.
+
+Define the available methods in your class
+
+  class User
+    include KingPlaceholder
+    has_many :comments
+    has_placeholders :firstname
+  end
+  class Comment
+    include KingPlaceholder
+    has_placeholders :text
+  end
+
+Use placeholder names in square brackets:
 
   @user.expand_placeholders("Hello [user.first_name]")
   => Hello Schorsch
 
-This gem was extraced from SalesKing where it handles placeholders substitution
-for user supplied email-, text- and export- templates.
 
-It can handle relations and collections
-
-  class User
-    has_many :comments
-  end
+It can also handle relations and collections
 
   @user.expand_placeholders("[comments][text][/comments]")
   => All comment texts
