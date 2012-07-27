@@ -1,0 +1,54 @@
+= KingPlaceholder
+
+Add placeholder substitution for strings:
+
+  @user.expand_placeholders("Hello [user.first_name]")
+  => Hello Schorsch
+
+This gem was extraced from SalesKing where it handles placeholders substitution
+for user supplied email-, text- and export- templates.
+
+It can handle relations and collections
+
+  class User
+    has_many :comments
+  end
+
+  @user.expand_placeholders("[comments][text][/comments]")
+  => All comment texts
+
+  @user.expand_placeholders("[comments.1.text]")
+  => First comment text
+
+
+== TODO
+
+This gems still relies on king_views with king_format, for money, date
+formatting. We will outsource king_format into its own gem and remove more
+SalesKing internal dependencies.
+
+== Installation
+
+Add this line to your application's Gemfile:
+
+    gem 'king_placeholder'
+
+And then execute:
+
+    $ bundle
+
+Or install it yourself as:
+
+    $ gem install king_placeholder
+
+== Usage
+
+See specs
+
+== Contributing
+
+1. Fork it
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Added some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create new Pull Request

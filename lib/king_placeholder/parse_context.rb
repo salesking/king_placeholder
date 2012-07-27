@@ -1,4 +1,7 @@
 require 'statemachine'
+require 'action_view'       # king_views related suxs
+require 'action_controller' # king_views
+require 'king_views'
 module KingPlaceholder
   # Statemachine for placeholder substitution
   # The statemachine is created and its state updated from within the Context
@@ -18,7 +21,7 @@ module KingPlaceholder
       end
     end
 
-  endspec
+  end
 
   # Statemachine context for placeholder substitution
   #
@@ -28,7 +31,7 @@ module KingPlaceholder
   #   machine.sm.match
   #   machine.result
   class ParseContext
-    include KingFormat::FormattingHelper
+    include ::KingFormat::FormattingHelper
     # reference to statemachine
     attr_accessor :sm
     # incoming string
@@ -165,21 +168,21 @@ module KingPlaceholder
     # => strfval + strfmoney
     # very important, without those all formatting in views screws up
     def set_format_opts
-      Thread.current[:default_currency_format] = if Company.current
-        Company.current.money_format
+      Thread.current[:default_currency_format] = if defined?(::Company) && ::Company.current
+        ::Company.current.money_format
       elsif obj.respond_to?(:company) && obj.company
         obj.company.money_format
-      elsif obj.is_a?(Company)
+      elsif defined?(::Company) && obj.is_a?(::Company)
         obj.money_format
       else
         nil
       end
 
-      Thread.current[:default_date_format] = if Company.current
-        Company.current.date_format
+      Thread.current[:default_date_format] = if defined?(::Company) && ::Company.current
+        ::Company.current.date_format
       elsif obj.respond_to?(:company) && obj.company
         obj.company.date_format
-      elsif obj.is_a?(Company)
+      elsif defined?(::Company) && obj.is_a?(::Company)
         obj.date_format
       else
         nil
@@ -196,7 +199,7 @@ module KingPlaceholder
          && obj.respond_to?(:company) && obj.company
         @current_language ||= begin
           # find lang in scope of company
-          Language.init_locale(obj.company, locale || obj.language)
+          ::Language.init_locale(obj.company, locale || obj.language)
         end
       end
     end

@@ -1,73 +1,77 @@
 require 'spec_helper'
 
-class BaseModel < ActiveRecord::Base
+class BaseModel
 #  include KingFormat::FormattingHelper
   include KingPlaceholder
 end
+
 # Construct dummy models
 class Master < BaseModel
-  def self.columns; []; end
   attr_accessor :string_field
-  has_many :details
-  has_one :side
+  attr_accessor :details
+  attr_accessor :side
   has_placeholders :string_field
 end
 
 class Side < BaseModel
-  def self.columns; []; end
   attr_accessor :field
-  belongs_to :master
+  attr_accessor :master
   has_placeholders :field
 end
 
 class Detail < BaseModel
-  include KingFormat::MoneyFields               # has_money_fields
-  def self.columns; []; end
+  include KingFormat::MoneyFields
   attr_accessor :int_field, :money_field, :secret_field, :currency
-  belongs_to :master
+  attr_accessor :master
   has_money_fields :money_field
   has_placeholders :int_field, :money_field
 end
 
-describe "Model with placeholders" do
+describe 'Class with placeholders' do
 
   before :each do
     I18n.locale = :en_master
-    # Thread problems with rspec .. fun
 #    Thread.current[:default_currency_format] = I18n.t(:'number.currency.format')
-    @record = Detail.new :int_field => 1000,
-                         :money_field => 12.34
+    @record = Detail.new
+    @record.int_field = 1000
+    @record.money_field = 12.34
   end
 
-  it "should have native values" do
+  it 'should have native values' do
     @record.int_field.should == 1000
     @record.money_field.should == 12.34
   end
 
-  it "should have placeholder values" do
-    @record.expand_placeholders("[int_field]").should == "1000"
-    @record.expand_placeholders("[money_field]").should == "12.34 $"
+  it 'should have placeholder values' do
+    @record.expand_placeholders('[int_field]').should == '1000'
+    @record.expand_placeholders('[money_field]').should == '$12.34'
   end
 
 end
 
-describe "Expanding of strings containing placeholder" do
+describe 'Expanding of strings containing placeholder' do
 
   before :each do
     I18n.locale = :en_master
-    @side = Side.new :field => 123
-    @master = Master.new :string_field => 'foo', :side => @side
+    @side = Side.new
+    @side.field = 123
+    @master = Master.new
+    @master.string_field = 'foo'
+    @master.side = @side
     @side.master = @master
 
-    @detail1 = Detail.new :int_field => 1001,
-                         :money_field => 12.34,
-                         :secret_field => 'top-secret',
-                         :master => @master
-    @detail2 = Detail.new :int_field => 1002,
-                        :money_field => 45.67,
-                        :secret_field => 'little secret',
-                        :master => @master
-    @master.stub!(:details).and_return([@detail1, @detail2])
+    @detail1 = Detail.new
+    @detail1.int_field = 1001
+    @detail1.money_field = 12.34
+    @detail1.secret_field = 'top-secret'
+    @detail1.master = @master
+
+    @detail2 = Detail.new
+    @detail2.int_field = 1002
+    @detail2.money_field = 45.67
+    @detail2.secret_field = 'little secret'
+    @detail2.master = @master
+    @master.details = [@detail1, @detail2]
   end
 
   it 'should expand placeholders with no placeholders there' do
@@ -82,7 +86,7 @@ describe "Expanding of strings containing placeholder" do
     @detail1.expand_placeholders('[int_field]').should == '1001'
     @detail1.expand_placeholders("[int_field]\n").should == "1001\n"
     @detail1.expand_placeholders('[int_field]---[int_field]').should == '1001---1001'
-    @detail1.expand_placeholders('[int_field]---[money_field]').should == '1001---12.34 $'
+    @detail1.expand_placeholders('[int_field]---[money_field]').should == '1001---$12.34'
   end
 
   it 'should not expand placeholder for secret field' do
@@ -123,17 +127,20 @@ describe "Expanding of strings containing placeholder" do
   end
 
   it 'should expand valid but empty placeholder group with empty string' do
-    master = Master.new :string_field => 'a string'
+    master = Master.new
+    master.details = []
     master.expand_placeholders('[details][int_field][/details]').should == ''
   end
 
   it 'should expand single item from a placeholder group' do
-    @master.expand_placeholders('[details.0.int_field]').should == '1001'
-    @master.expand_placeholders('[details.1.int_field]').should == '1002'
+    @master.details.inspect
+    @master.expand_placeholders('[details.1.int_field]').should == '1001'
+    @master.expand_placeholders('[details.2.int_field]').should == '1002'
   end
 
   it 'should expand single item in empty placeholder group with empty string' do
-    master = Master.new :string_field => 'a string'
+    master = Master.new
+    master.details  = []
     master.expand_placeholders('[details.0.int_field]').should == ''
   end
 
@@ -142,7 +149,7 @@ describe "Expanding of strings containing placeholder" do
   end
 
   it 'should expand placeholder group for non ending group' do
-    @master.expand_placeholders("[details][int_field]").should == "END MISSING FOR detailsUNKNOWN for Master: int_field"
+    @master.expand_placeholders('[details][int_field]').should == 'END MISSING FOR detailsUNKNOWN for Master: int_field'
   end
 
   # TODO: Make this possible!
@@ -150,17 +157,17 @@ describe "Expanding of strings containing placeholder" do
 #       @master.expand_placeholders("[master.details][int_field][end]").should == "10011002"
 #   end
 
-  it "should expand placeholders in an array" do
-    @detail1.expand_placeholders(['[int_field]', '[money_field]', 'static']).should == ['1001', '12.34 $', 'static']
+  it 'should expand placeholders in an array' do
+    @detail1.expand_placeholders(['[int_field]', '[money_field]', 'static']).should == ['1001', '$12.34', 'static']
   end
 
-  it "should expand placeholders in a hash" do
+  it 'should expand placeholders in a hash' do
     @detail1.expand_placeholders( :key1 => '[int_field]',
                                   :key2 => '[money_field]',
                                   :key3 => 'static'
                                 ).should ==
                                   { :key1 => '1001',
-                                    :key2 => '12.34 $',
+                                    :key2 => '$12.34',
                                     :key3 => 'static' }
   end
 end

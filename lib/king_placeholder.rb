@@ -1,12 +1,11 @@
+require 'king_placeholder/parse_context'
+require 'active_support'
+require 'active_support/version'
+
 #  Define fields/methods of the including class as placeholders.
 #  A Placeholder can be used inside any text string and will be replaced with a
 #  stringified, formatted value(by KingViews gem => KingFormat::FormattingHelper.strfval )
 #  Used for text snippets, PDF creation or E-Mail templates.
-require 'active_support'
-require 'active_support/version'
-require 'action_view'       # king_views related suxs
-require 'action_controller' # king_views
-require 'king_views'
 
 module KingPlaceholder
 
@@ -109,7 +108,7 @@ module KingPlaceholder
       else # Only proceed with strings
         return content unless content.is_a?(String)
       end
-      parser = ParseContext.new(self, content, opts)
+      parser = KingPlaceholder::ParseContext.new(self, content, opts)
       parser.sm.match
       parser.result if parser.sm.state == :finished
     end
