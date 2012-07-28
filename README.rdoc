@@ -1,10 +1,11 @@
 = KingPlaceholder
 {<img src="https://secure.travis-ci.org/salesking/king_placeholder.png?branch=master" alt="Build Status" />}[http://travis-ci.org/salesking/king_placeholder]
+
 This gem was extracted from SalesKing, where it does placeholders substitution
 for user supplied strings in Email-, Text- and Export-Templates.
 
 Placeholders are declared in each class and afterwards any strings containing
-[placeholders] can be parsed in the scope of the model.
+<b>[placeholders]</b> can be parsed in the scope of the model.
 
 Parsing is done by a simple statemachine using regex for placeholder detection.
 
@@ -16,7 +17,7 @@ Define the available methods in your class with 'has_placeholders'
     include KingPlaceholder
     has_many :comments
     has_one :company
-    has_placeholders :firstname, :email
+    has_placeholders :name, :email
   end
 
   class Comment
