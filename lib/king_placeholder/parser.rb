@@ -30,7 +30,7 @@ module KingPlaceholder
   #   # send match event
   #   machine.sm.match
   #   machine.result
-  class ParseContext
+  class Parser
     include ::KingFormat::FormattingHelper
     # reference to statemachine
     attr_accessor :sm

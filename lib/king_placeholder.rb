@@ -1,4 +1,4 @@
-require 'king_placeholder/parse_context'
+require 'king_placeholder/parser'
 require 'active_support'
 require 'active_support/version'
 
@@ -9,7 +9,7 @@ require 'active_support/version'
 
 module KingPlaceholder
 
-  # sets :placeholders and init Class.placeholders as emtpy array on inclusion
+  # sets :placeholders and init Class.placeholders array on inclusion
   def self.included(base)
     if ActiveSupport::VERSION::MAJOR == 3 && ActiveSupport::VERSION::MINOR > 0
       base.class_attribute :placeholders
@@ -21,26 +21,18 @@ module KingPlaceholder
   end
 
   module ClassMethods
-
-    #  Defines the fields returned by self.placeholders.
-    #  Sets self.publish if empty.
-    # ==== Parameter
-    #  fieldnames<Array[Symbol]>:: the names of the fields which are available
-    #  throught the placeholder methods
+    # Define fields(methods) available to placeholder substitution
+    # @param [Array[<Symbol>] fieldnames
     def has_placeholders(*fieldnames)
       self.placeholders = fieldnames
       include InstanceMethods
     end
-  end #ClassMethods
+  end
 
   module InstanceMethods
-
     # Check if a given field is declared as placeholder
-    # TODO check usage and/or move to class methods
-    # ==== Parameter
-    # fieldname<String|Symbol>:: the field to search in the placeholders array
-    # ==== Returns
-    # <Boolean>:: true if in
+    # @param [Object] fieldname to search in placeholders array
+    # @return [Boolean]true if available
     def is_placeholder?(fieldname)
       self.class.placeholders.include?(fieldname.to_sym)
     end
@@ -50,11 +42,11 @@ module KingPlaceholder
     # and returns data with the same data type e.g. if you put a hash, you will
     # get a hash.
     #
-    # ==== Examples
+    # @examples
     #
     # Placeholders in text strings can be written in different notations.
     #
-    # ===== Simple Notation:
+    # === Simple Notation:
     #
     #  => [first_name]
     # The fieldname is directly looked up on the current class:
@@ -63,7 +55,7 @@ module KingPlaceholder
     # invoice.expand_placeholders(["You owe me [price_to_pay]", "Invoice Nr. [number]"])
     #   => ["You owe me 495,00 EUR", "Invoice Nr. 123"]
     #
-    # ===== Namespaced Notation
+    # === Namespaced Notation
     #
     # => [company.organisation]
     # If the prefix equals the type of the current object the field is looked up on it.
@@ -78,7 +70,7 @@ module KingPlaceholder
     #   invoice.expand_placeholders("[client.company.default_address.zip]")
     #   => "50999"
     #
-    # ===== Namespaced Notation with multiple related objects
+    # === Namespaced Notation with multiple related objects
     #
     # In a has_many relationship, related objects reside in an array, which can
     # be reached using two different strategies.
@@ -91,11 +83,9 @@ module KingPlaceholder
     #   invoice.expand_placeholders("You bought an [items.0.name] for [items.0.price]")
     #   => "You bought an Apple for 12 EUR"
     #
-    # === Parameter
-    # content<Hash,Array, String>:: Collection, Hash or single string containing
-    # placeholders
-    # === Returns
-    # <Hash,Array, String>:: whatever type you throw in is also returned
+    # @param [Hash|Array|String] content with placeholders
+    # @param [Object] opts - unused for now
+    # @return [Hash|Array|String] whatever type you throw in is also returned
     def expand_placeholders(content, opts={})
       if content.is_a?(Array) # Expand all array elements and go recursive
         result = []
@@ -108,7 +98,7 @@ module KingPlaceholder
       else # Only proceed with strings
         return content unless content.is_a?(String)
       end
-      parser = KingPlaceholder::ParseContext.new(self, content, opts)
+      parser = KingPlaceholder::Parser.new(self, content, opts)
       parser.sm.match
       parser.result if parser.sm.state == :finished
     end
