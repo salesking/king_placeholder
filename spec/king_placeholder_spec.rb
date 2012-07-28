@@ -1,25 +1,23 @@
 require 'spec_helper'
 
-class BaseModel
-#  include KingFormat::FormattingHelper
+# Construct dummy classes
+class Master
   include KingPlaceholder
-end
-
-# Construct dummy models
-class Master < BaseModel
   attr_accessor :string_field
   attr_accessor :details
   attr_accessor :side
   has_placeholders :string_field
 end
 
-class Side < BaseModel
+class Side
+  include KingPlaceholder
   attr_accessor :field
   attr_accessor :master
   has_placeholders :field
 end
 
-class Detail < BaseModel
+class Detail
+  include KingPlaceholder
   include KingFormat::MoneyFields
   attr_accessor :int_field, :money_field, :secret_field, :currency
   attr_accessor :master

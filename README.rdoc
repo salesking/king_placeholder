@@ -3,12 +3,20 @@
 This gem was extraced from SalesKing where it handles placeholders substitution
 for user supplied email-, text- and export- templates.
 
+Substitutes [placeholders] in text strings. Placeholders are declared in a
+class by 'has_placeholders' method. Afterwards any strings with plastr = "Hey [name] your address is [email]"
+                                                                     u = User.new :name=> "theo", :email => 'a@theo.com'
+                                                                     u.expand_placeholders(str)
+                                                                     => "Hey Theo your address is a@theo.com"ceholders
+can be parsed in the scope of the model.
+
 Define the available methods in your class
 
   class User
     include KingPlaceholder
     has_many :comments
-    has_placeholders :firstname
+    has_one :company
+    has_placeholders :firstname, :email
   end
   class Comment
     include KingPlaceholder
@@ -17,11 +25,12 @@ Define the available methods in your class
 
 Use placeholder names in square brackets:
 
-  @user.expand_placeholders("Hello [user.first_name]")
-  => Hello Schorsch
+  str = "Hey [name] your address is [email]"
+  u = User.new( name: "theo", email: 'a@theo.com')
+  u.expand_placeholders(str)
+  => "Hey Theo your address is a@theo.com"
 
-
-It can also handle relations and collections
+Handle collections
 
   @user.expand_placeholders("[comments][text][/comments]")
   => All comment texts
@@ -29,10 +38,13 @@ It can also handle relations and collections
   @user.expand_placeholders("[comments.1.text]")
   => First comment text
 
+Handle relations
+  @user.expand_placeholders("[company.name]")
+  => MyCompany
 
 == TODO
 
-This gems still relies on king_views with king_format, for money, date
+This gems still relies on gem king_views with king_format, for money, date
 formatting. We will outsource king_format into its own gem and remove more
 SalesKing internal dependencies.
 
@@ -41,10 +53,6 @@ SalesKing internal dependencies.
 Add this line to your application's Gemfile:
 
     gem 'king_placeholder'
-
-And then execute:
-
-    $ bundle
 
 Or install it yourself as:
 

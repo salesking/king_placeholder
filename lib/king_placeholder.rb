@@ -95,7 +95,7 @@ module KingPlaceholder
     # content<Hash,Array, String>:: Collection, Hash or single string containing
     # placeholders
     # === Returns
-    # <Hash,Array, String>:: whatever type you threw in is also returned
+    # <Hash,Array, String>:: whatever type you throw in is also returned
     def expand_placeholders(content, opts={})
       if content.is_a?(Array) # Expand all array elements and go recursive
         result = []

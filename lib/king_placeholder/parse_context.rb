@@ -2,6 +2,7 @@ require 'statemachine'
 require 'action_view'       # king_views related suxs
 require 'action_controller' # king_views
 require 'king_views'
+
 module KingPlaceholder
   # Statemachine for placeholder substitution
   # The statemachine is created and its state updated from within the Context
@@ -20,7 +21,6 @@ module KingPlaceholder
         context machine_context
       end
     end
-
   end
 
   # Statemachine context for placeholder substitution
@@ -40,14 +40,12 @@ module KingPlaceholder
     attr_accessor :result
     # the current object
     attr_accessor :obj
-    # hash parse options
+    # parse-options hash
     attr_accessor :opts
 
-    # === Parameter
-    # obj<Object>:: any object responding to has_placeholder
-    # content<String>:: String containing placeholders
-    # opts<Hash{Symbol=>Mixed}>:: parse options
-    # :only<Array> => parse only the given placeholders
+    # @param [Object] obj object responding to has_placeholder
+    # @param [String] content containing placeholders
+    # @param [Hash{Symbol=>Mixed}] opts parser options (none so far)
     def initialize(obj, content, opts={})
       @sm = ParseMachine.create_with(self) # init statemachine
       @obj = obj
@@ -71,20 +69,20 @@ module KingPlaceholder
     # When finished matching, triggers finished_matching event on statemachine
     def parse
       while match = @result.match(/\[((\w|\.)+)\]/)
-        @c_placeholder = match[0] #  with brackets - current placeholder
-        @c_field = match[1]       # without brackets - current field
+        @placeholder = match[0] #  with brackets - current placeholder
+        @field = match[1]       # without brackets - current field
 
         check_current_prefix
 
-        if @c_field['.']
+        if @field['.']
           sub_object
-        elsif obj.respond_to?(@c_field) && ( @cur_collection = obj.send(@c_field) ).is_a?(Array)
+        elsif obj.respond_to?(@field) && ( @cur_collection = obj.send(@field) ).is_a?(Array)
           sub_collection
         else
           sub_string
         end
         # If placeholder still exists here, it can't be recognized, sub with error
-        @result.gsub!(@c_placeholder, "UNKNOWN for #{obj.class.to_s}: #{@c_field}")
+        @result.gsub!(@placeholder, "UNKNOWN for #{obj.class.to_s}: #{@field}")
       end
       @sm.finished_matching
     end
@@ -100,35 +98,34 @@ module KingPlaceholder
     # Final destination of each placeholder in it's simple notation without
     # namespace e.g. [price_to_pay]
     def sub_string
-      return unless obj.is_placeholder?(@c_field)
-      # only parse some placeholders
-#      return if opts[:only] && !opts[:only].include?(@c_field)
-      value = strfval(obj, @c_field)
-      @result.gsub!(@c_placeholder, value.to_s) if value
+      return unless obj.is_placeholder?(@field)
+      value = strfval(obj, @field)
+      @result.gsub!(@placeholder, value.to_s) if value
     end
 
-    # Namespaced notation, for related objects. We are in invoice which belongs
-    # to a company:
+    # Namespaced notation, for related objects. E.g an invoice belonging to a
+    # company:
     #   [company.default_address.zip]
     # instead of
     #   [invoice.company.default_address.zip]
     def sub_object
-      splitted = @c_field.split('.')
-      object_name = splitted.first # just the first
-      field_names = splitted[1..-1] # all but the first
-      return unless object_name && obj.respond_to?(object_name) # the field exists
+      splits= @field.split('.')
+      object_name = splits.first
+      field_names = splits[1..-1] # all but the first
+      return unless object_name && obj.respond_to?(object_name)
       object = obj.send(object_name)
-      #check if its a collection => invoice.items and access is done by ary index items.0.name
-      if object.is_a?(Array) && ary_index = field_names.first[/\A\d*\z/] # [items.5.name] match digit only string
+      # Its a collection => invoice.items and access is done by ary index:
+      # first item => [items.1.name]
+      if object.is_a?(Array) && ary_index = field_names.first[/\A\d*\z/]
         field_names.delete_at(0) # remove entry from field_names ary
         # replace with empty string if the index does not exist or obj is empty
-        @result.gsub!(@c_placeholder, '') unless object = object[ary_index.to_i-1]
+        @result.gsub!(@placeholder, '') unless object = object[ary_index.to_i-1]
       end
 
-      # Recurse and Let the referenced object do the expanding
+      # Recurse and let the referenced object do the expanding
       if object.respond_to?(:expand_placeholders)
         value = object.expand_placeholders("[#{field_names.join('.')}]")
-        @result.gsub!(@c_placeholder, value)
+        @result.gsub!(@placeholder, value)
       end
     end
 
@@ -136,30 +133,31 @@ module KingPlaceholder
     # [/field_name]
     # e.g. [items] Item price: [price] \n [/items]
     def sub_collection
-      if match = @result.match(/\[#{@c_field}\](.*)\[\/#{@c_field}\]/m) # the /m makes the dot match newlines, too!
+      if match = @result.match(/\[#{@field}\](.*)\[\/#{@field}\]/m) # the /m makes the dot match newlines, too!
         whole_group = match[0]
         inner_placeholders = match[1]
         inner_result = ''
-         # Let the referenced object do the expanding by recursion if the collection knowns placeholders
+         # Let the referenced object do the expanding by recursion if the collection knows placeholders
         @cur_collection.each do |item|
           inner_result << item.expand_placeholders(inner_placeholders)
         end if @cur_collection.first.respond_to?(:expand_placeholders)
         @result.gsub!(whole_group, inner_result)
       else
-        @result.gsub!(@c_placeholder, "END MISSING FOR #{@c_field}")
+        @result.gsub!(@placeholder, "END MISSING FOR #{@field}")
       end
     end
 
-    # Checks if the current field name contains the current object's class name.
-    # If the current class is an invoice, kick the prefix:
-    #   invoice.number => number
+    # Checks if the field name contains the current object's class name.
+    # Kick the prefix if the current class matches it, e.g:
+    #   Inside a client object
+    #   client.number => number
     def check_current_prefix
-      if @c_field['.']
-        splitted = @c_field.split('.')
-        object_name = splitted.first
+      if @field['.']
+        splits = @field.split('.')
+        object_name = splits.first
         if object_name && obj.class.name == object_name.classify
-          splitted.delete_at(0) # kick the object portion => invoice
-          @c_field = splitted.join('.') # glue the rest back together [number]
+          splits.delete_at(0) # kick the object portion => invoice
+          @field = splits.join('.') # glue the rest back together [number]
         end
       end
     end
