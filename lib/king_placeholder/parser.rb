@@ -53,13 +53,9 @@ module KingPlaceholder
       @opts = opts
     end
 
-    # Before matching is done this method set's up environment variables like
-    # current_language => i18n.locale
-    # TODO: decouple and outsource into before_method block to set env vars from outside
+    # Before matching is done deep copy content, because otherwise result.gsub!
+    # breaks recursion
     def prepare
-      init_locale  #I18n.locale
-      set_format_opts # merge date/money format into thread var
-      # deep copy content, because otherwise result.gsub! breaks recursion
       @result = @content.dup
     end
 
@@ -87,10 +83,8 @@ module KingPlaceholder
       @sm.finished_matching
     end
 
-    # When finished this method is called to cleanup f.ex. environment variables
-    # like I18n.locale
     def cleanup
-      @current_language && @current_language.reset_locale
+
     end
 
     private
@@ -162,44 +156,5 @@ module KingPlaceholder
       end
     end
 
-    # set format options for KingFormat date/money helpers
-    # => strfval + strfmoney
-    # very important, without those all formatting in views screws up
-    def set_format_opts
-      Thread.current[:default_currency_format] = if defined?(::Company) && ::Company.current
-        ::Company.current.money_format
-      elsif obj.respond_to?(:company) && obj.company
-        obj.company.money_format
-      elsif defined?(::Company) && obj.is_a?(::Company)
-        obj.money_format
-      else
-        nil
-      end
-
-      Thread.current[:default_date_format] = if defined?(::Company) && ::Company.current
-        ::Company.current.date_format
-      elsif obj.respond_to?(:company) && obj.company
-        obj.company.date_format
-      elsif defined?(::Company) && obj.is_a?(::Company)
-        obj.date_format
-      else
-        nil
-      end
-    end
-
-    # Set i18n.locale to given or present custom company locale
-    # locale is memoized in instance @current_language.
-    # Only set if a company and the language is available
-    # === Parameter
-    # locale<String>:: locale code en, de,..
-    def init_locale(locale=nil)
-      if (locale || (obj.respond_to?(:language) && obj.language)) \
-         && obj.respond_to?(:company) && obj.company
-        @current_language ||= begin
-          # find lang in scope of company
-          ::Language.init_locale(obj.company, locale || obj.language)
-        end
-      end
-    end
   end #class
 end #module
