@@ -18,33 +18,41 @@ end
 
 class Detail
   include KingPlaceholder
-  include KingFormat::MoneyFields
   attr_accessor :int_field, :money_field, :secret_field, :currency
   attr_accessor :master
-  has_money_fields :money_field
   has_placeholders :int_field, :money_field
 end
 
 describe 'Class with placeholders' do
 
   before :each do
-    I18n.locale = :en_master
-#    Thread.current[:default_currency_format] = I18n.t(:'number.currency.format')
     @record = Detail.new
-    @record.int_field = 1000
-    @record.money_field = 12.34
+    @record.int_field = 1002
+    @record.money_field = 12.333
   end
 
   it 'should have native values' do
-    @record.int_field.should == 1000
-    @record.money_field.should == 12.34
+    @record.int_field.should == 1002
+    @record.money_field.should == 12.333
   end
 
-  it 'should have placeholder values' do
-    @record.expand_placeholders('[int_field]').should == '1000'
-    @record.expand_placeholders('[money_field]').should == '$12.34'
+  it 'should have placeholder value' do
+    @record.expand_placeholders('[int_field]').should == '1002'
+    @record.expand_placeholders('[money_field]').should == '12.333'
   end
+  it 'should expand placeholders in an array' do
+    @record.expand_placeholders(['[int_field]', '[money_field]', 'static']).should == ['1002', '12.333', 'static']
+   end
 
+   it 'should expand placeholders in a hash' do
+     @record.expand_placeholders( :key1 => '[int_field]',
+                                   :key2 => '[money_field]',
+                                   :key3 => 'static'
+                                 ).should ==
+                                   { :key1 => '1002',
+                                     :key2 => '12.333',
+                                     :key3 => 'static' }
+   end
 end
 
 describe 'Placeholder substitution' do
@@ -85,8 +93,7 @@ describe 'Placeholder substitution' do
     it 'should expand with simple fieldname' do
       @detail1.expand_placeholders('[int_field]').should == '1001'
       @detail1.expand_placeholders("[int_field]\n").should == "1001\n"
-      @detail1.expand_placeholders('[int_field]---[int_field]').should == '1001---1001'
-      @detail1.expand_placeholders('[int_field]---[money_field]').should == '1001---$12.34'
+      @detail1.expand_placeholders('[int_field]---[int_field]--[money_field]').should == '1001---1001--12.34'
     end
 
     it 'should not parse unknown field' do
@@ -117,7 +124,7 @@ describe 'Placeholder substitution' do
       @detail1.expand_placeholders('[detail.master.string_field] [detail.int_field]').should == 'foo 1001'
     end
 
-    it 'should parse with multiple steps' do
+    it 'should parse multiple steps' do
       @detail1.expand_placeholders('[master.side.field]').should == '123'
     end
   end
@@ -133,7 +140,7 @@ describe 'Placeholder substitution' do
     end
   end
 
-  context 'with groups' do
+  context 'with collection' do
     it 'should expand' do
       @master.expand_placeholders('[details][int_field]\n[/details]').should == '1001\n1002\n'
       @master.expand_placeholders('[details]Test:[int_field][/details]').should == 'Test:1001Test:1002'
@@ -151,18 +158,16 @@ describe 'Placeholder substitution' do
     end
   end
 
+  context 'with custom formatter' do
+    before :each do
+      I18n.locale = :en_master
+    #    Thread.current[:default_currency_format] = I18n.t(:'number.currency.format')
+    end
 
-  it 'should expand placeholders in an array' do
-    @detail1.expand_placeholders(['[int_field]', '[money_field]', 'static']).should == ['1001', '$12.34', 'static']
+    xit 'should format money' do
+      @record.expand_placeholders('[money_field]').should == '$12.34'
+    end
   end
 
-  it 'should expand placeholders in a hash' do
-    @detail1.expand_placeholders( :key1 => '[int_field]',
-                                  :key2 => '[money_field]',
-                                  :key3 => 'static'
-                                ).should ==
-                                  { :key1 => '1001',
-                                    :key2 => '$12.34',
-                                    :key3 => 'static' }
-  end
+
 end

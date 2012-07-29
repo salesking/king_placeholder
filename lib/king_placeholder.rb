@@ -117,6 +117,7 @@ module KingPlaceholder
         return content unless content.is_a?(String)
       end
       run_callbacks :expand_placeholders do
+        opts[:formatter] = :format_placeholder if self.respond_to?(:format_placeholder)
         parser = KingPlaceholder::Parser.new(self, content, opts)
         parser.sm.match
         parser.result if parser.sm.state == :finished

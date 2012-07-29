@@ -18,9 +18,6 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency 'statemachine'
   gem.add_runtime_dependency 'i18n'
   gem.add_runtime_dependency 'activesupport'
-  gem.add_runtime_dependency 'actionpack'
-  #gem.add_runtime_dependency 'actionview'
-  #gem.add_runtime_dependency 'king_views'
 
   gem.add_development_dependency 'activerecord'
   gem.add_development_dependency 'rdoc'

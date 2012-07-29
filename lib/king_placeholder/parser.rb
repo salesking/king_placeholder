@@ -1,8 +1,5 @@
 require 'statemachine'
-require 'action_view'       # king_views related suxs
-require 'action_controller' # king_views
-require 'king_views'
-
+require 'active_support/core_ext/string/inflections'
 module KingPlaceholder
   # Statemachine for placeholder substitution
   # The statemachine is created and its state updated from within the Context
@@ -31,7 +28,6 @@ module KingPlaceholder
   #   machine.sm.match
   #   machine.result
   class Parser
-    include ::KingFormat::FormattingHelper
     # reference to statemachine
     attr_accessor :sm
     # incoming string
@@ -93,7 +89,12 @@ module KingPlaceholder
     # namespace e.g. [price_to_pay]
     def sub_string
       return unless obj.is_placeholder?(@field)
-      value = strfval(obj, @field)
+      value = if @opts[:formatter]
+                obj.send(@opts[:formatter], @field)
+              else
+                obj.send @field
+              end
+      #value = strfval(obj, @field)
       @result.gsub!(@placeholder, value.to_s) if value
     end
 

@@ -44,6 +44,33 @@ Handle relations
   @user.expand_placeholders("[company.name]")
   => MyCompany
 
+Set a custom formatting method(in format_placeholder) throught which all fields
+are run, if you have special money or date formatters.
+
+  class User
+    include KingPlaceholder
+    has_placeholders :created_at
+
+    def format_placeholder(field)
+      I18n.l( self.send(field) )
+    end
+  end
+
+Use callbacks to setup / teardown env variables
+
+  class User
+    include KingPlaceholder
+    has_placeholders :name, :email
+
+    def before_expand_placeholders
+      I18n.locale = self.language
+    end
+    def after_expand_placeholders
+      I18n.locale = nil
+    end
+  end
+
+
 Also see specs
 
 == TODO
