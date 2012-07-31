@@ -132,18 +132,23 @@ describe 'Placeholder substitution' do
 
   context 'with empty fields' do
 
-    it 'should expand valid but empty placeholder group with empty string' do
+    it 'should parse valid but empty placeholder group with empty string' do
       master = Master.new
       master.details = []
       master.expand_placeholders('[details][int_field][/details]').should == ''
     end
 
-    it 'should expand single item group with empty string' do
+    it 'should parse single item group with empty string' do
       @master.expand_placeholders('[details.10.int_field]').should == ''
     end
 
     it 'should parse related object field with empty string' do
       @master.string_field = nil
+      @detail1.expand_placeholders('[master.string_field]').should == ''
+    end
+
+    it 'should parse empty related object with empty string' do
+      @detail1.master = nil
       @detail1.expand_placeholders('[master.string_field]').should == ''
     end
   end

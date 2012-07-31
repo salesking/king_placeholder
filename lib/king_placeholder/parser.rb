@@ -111,7 +111,10 @@ module KingPlaceholder
       object = obj.send(object_name)
       # Its a collection => invoice.items and access is done by ary index:
       # first item => [items.1.name]
-      if object.is_a?(Array) && ary_index = field_names.first[/\A\d*\z/]
+      if object.nil?
+        # empty relation
+        @result.gsub!(@placeholder, '')
+      elsif object.is_a?(Array) && ary_index = field_names.first[/\A\d*\z/]
         field_names.delete_at(0) # remove entry from field_names ary
         # replace with empty string if the index does not exist or obj is empty
         @result.gsub!(@placeholder, '') unless object = object[ary_index.to_i-1]
