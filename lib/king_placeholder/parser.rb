@@ -94,8 +94,8 @@ module KingPlaceholder
               else
                 obj.send @field
               end
-      #value = strfval(obj, @field)
-      @result.gsub!(@placeholder, value.to_s) if value
+      value = '' if value.nil?
+      @result.gsub!(@placeholder, value.to_s)
     end
 
     # Namespaced notation, for related objects. E.g an invoice belonging to a
