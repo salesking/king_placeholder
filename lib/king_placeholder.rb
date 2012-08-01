@@ -6,18 +6,17 @@ require 'active_support/version'
 #  A Placeholder can be used inside any text string and will be replaced with a
 #  stringified, formatted value(by KingViews gem => KingFormat::FormattingHelper.strfval )
 #  Used for text snippets, PDF creation or E-Mail templates.
-
 module KingPlaceholder
+  extend ActiveSupport::Concern
+  include ActiveSupport::Callbacks
 
-  # sets :placeholders and init Class.placeholders array on inclusion
-  def self.included(base)
+  included do
     if ActiveSupport::VERSION::MAJOR == 3 && ActiveSupport::VERSION::MINOR > 0
-      base.class_attribute :placeholders
+      class_attribute :placeholders
     else
-      base.send :class_inheritable_accessor, :placeholders
+      class_inheritable_accessor :placeholders
     end
-    base.placeholders = []
-    base.extend(ClassMethods)
+    placeholders = []
   end
 
   module ClassMethods
@@ -26,10 +25,11 @@ module KingPlaceholder
     # `before/after_expand_placeholders` hooks are run before the statemachine
     # parsing. Define those methods to setup env variables like I18n.locale or
     # whatever is required to format output strings.
-    # The block gets the current parsed object as method argument
+    # The block is called in scope of the current object(self).
     # @example
     #   def before_expand_placeholders
     #     I18n.locale = self.language
+    #     # self == current object
     #   end
     #   def after_expand_placeholders
     #     I18n.locale = nil
@@ -38,14 +38,13 @@ module KingPlaceholder
     # @param [Array[<Symbol>] fieldnames
     def has_placeholders(*fieldnames)
       self.placeholders = fieldnames
-      include ActiveSupport::Callbacks
       define_callbacks :expand_placeholders
       set_callback :expand_placeholders, :before, :before_parsing
       set_callback :expand_placeholders, :after, :after_parsing
-      include InstanceMethods
     end
   end
 
+  # TODO inclusion deprecated in ActiveSupport 3.2.7, when gone move methods up into module
   module InstanceMethods
 
     # Check if a given field is declared as placeholder

@@ -16,7 +16,6 @@ Gem::Specification.new do |gem|
   gem.version       = KingPlaceholder::VERSION
 
   gem.add_runtime_dependency 'statemachine'
-  gem.add_runtime_dependency 'i18n'
   gem.add_runtime_dependency 'activesupport'
 
   gem.add_development_dependency 'activerecord'
