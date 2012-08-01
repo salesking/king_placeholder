@@ -1,131 +1,131 @@
 require 'spec_helper'
 
 # Construct dummy classes
-class Master
+class Company
   include KingPlaceholder
-  attr_accessor :string_field
-  attr_accessor :details
-  attr_accessor :side
-  has_placeholders :string_field
+  attr_accessor :name
+  attr_accessor :clients    # has_many
+  attr_accessor :user       # belongs_to
+  has_placeholders :name
 end
 
-class Side
+class User
   include KingPlaceholder
-  attr_accessor :field
-  attr_accessor :master
-  has_placeholders :field
+  attr_accessor :email
+  attr_accessor :company
+  has_placeholders :email
 end
 
-class Detail
+class Client
   include KingPlaceholder
-  attr_accessor :int_field, :money_field, :secret_field, :currency
-  attr_accessor :master
-  has_placeholders :int_field, :money_field
+  attr_accessor :number, :money_field, :secret_field, :currency
+  attr_accessor :company
+  has_placeholders :number, :money_field
 end
 
 describe 'Class with placeholders' do
 
   before :each do
-    @record = Detail.new
-    @record.int_field = 1002
-    @record.money_field = 12.333
+    @client = Client.new
+    @client.number = 1002
+    @client.money_field = 12.333
   end
 
   it 'should have native values' do
-    @record.int_field.should == 1002
-    @record.money_field.should == 12.333
+    @client.number.should == 1002
+    @client.money_field.should == 12.333
   end
 
   it 'should have placeholder value' do
-    @record.expand_placeholders('[int_field]').should == '1002'
-    @record.expand_placeholders('[money_field]').should == '12.333'
+    @client.expand_placeholders('[number]').should == '1002'
+    @client.expand_placeholders('[money_field]').should == '12.333'
   end
   it 'should expand placeholders in an array' do
-    @record.expand_placeholders(['[int_field]', '[money_field]', 'static']).should == ['1002', '12.333', 'static']
-   end
+    @client.expand_placeholders(['[number]', '[money_field]', 'static']).should == ['1002', '12.333', 'static']
+  end
 
-   it 'should expand placeholders in a hash' do
-     @record.expand_placeholders( :key1 => '[int_field]',
-                                   :key2 => '[money_field]',
-                                   :key3 => 'static'
-                                 ).should ==
-                                   { :key1 => '1002',
-                                     :key2 => '12.333',
-                                     :key3 => 'static' }
-   end
+  it 'should expand placeholders in a hash' do
+    @client.expand_placeholders( :key1 => '[number]',
+                                 :key2 => '[money_field]',
+                                 :key3 => 'static'
+                                ).should ==
+                                 { :key1 => '1002',
+                                   :key2 => '12.333',
+                                   :key3 => 'static' }
+  end
 end
 
 describe 'Placeholder substitution' do
 
   before :each do
     I18n.locale = :en
-    @side = Side.new
-    @side.field = 123
-    @master = Master.new
-    @master.string_field = 'foo'
-    @master.side = @side
-    @side.master = @master
+    @user = User.new
+    @user.email = 'a@b.com'
+    @company = Company.new
+    @company.name = 'BigMoney Inc.'
+    @company.user = @user
+    @user.company = @company
 
-    @detail1 = Detail.new
-    @detail1.int_field = 1001
-    @detail1.money_field = 12.34
-    @detail1.secret_field = 'top-secret'
-    @detail1.master = @master
+    @client = Client.new
+    @client.number = 1001
+    @client.money_field = 12.34
+    @client.secret_field = 'top-secret'
+    @client.company = @company
 
-    @detail2 = Detail.new
-    @detail2.int_field = 1002
-    @detail2.money_field = 45.67
-    @detail2.secret_field = 'little secret'
-    @detail2.master = @master
-    @master.details = [@detail1, @detail2]
+    @client_1 = Client.new
+    @client_1.number = 1002
+    @client_1.money_field = 45.67
+    @client_1.secret_field = 'little secret'
+    @client_1.company = @company
+    @company.clients = [@client, @client_1]
   end
 
   context 'with direct lookup' do
 
     it 'should return without placeholders' do
-      @detail1.expand_placeholders('without placeholder').should == 'without placeholder'
-      @detail1.expand_placeholders('[]').should == '[]'
-      @detail1.expand_placeholders('').should == ''
-      @detail1.expand_placeholders(nil).should == nil
-      @detail1.expand_placeholders("\n").should == "\n"
+      @client.expand_placeholders('without placeholder').should == 'without placeholder'
+      @client.expand_placeholders('[]').should == '[]'
+      @client.expand_placeholders('').should == ''
+      @client.expand_placeholders(nil).should == nil
+      @client.expand_placeholders("\n").should == "\n"
     end
 
     it 'should expand with simple fieldname' do
-      @detail1.expand_placeholders('[int_field]').should == '1001'
-      @detail1.expand_placeholders("[int_field]\n").should == "1001\n"
-      @detail1.expand_placeholders('[int_field]---[int_field]--[money_field]').should == '1001---1001--12.34'
+      @client.expand_placeholders('[number]').should == '1001'
+      @client.expand_placeholders("[number]\n").should == "1001\n"
+      @client.expand_placeholders('[number]---[number]--[money_field]').should == '1001---1001--12.34'
     end
 
     it 'should not parse unknown field' do
-      @detail1.expand_placeholders('[secret_field]').should == 'UNKNOWN for Detail: secret_field'
+      @client.expand_placeholders('[secret_field]').should == 'UNKNOWN for Client: secret_field'
     end
 
     it 'should expand placeholder with not existing namespaces' do
-      @detail1.expand_placeholders('[nothing.string_field]').should == 'UNKNOWN for Detail: nothing.string_field'
+      @client.expand_placeholders('[nothing.name]').should == 'UNKNOWN for Client: nothing.name'
     end
 
     it 'should expand placeholder with wrong namespaces' do
-      @detail1.expand_placeholders('[master.this.are.too.much.namespaces]').should == 'UNKNOWN for Master: this.are.too.much.namespaces'
-      @detail1.expand_placeholders('[this.are.too.much.namespaces]').should == 'UNKNOWN for Detail: this.are.too.much.namespaces'
-      @detail1.expand_placeholders('[...]').should == 'UNKNOWN for Detail: ...'
-      @detail1.expand_placeholders('[unknown]').should == 'UNKNOWN for Detail: unknown'
+      @client.expand_placeholders('[company.this.are.too.much.namespaces]').should == 'UNKNOWN for Company: this.are.too.much.namespaces'
+      @client.expand_placeholders('[this.are.too.much.namespaces]').should == 'UNKNOWN for Client: this.are.too.much.namespaces'
+      @client.expand_placeholders('[...]').should == 'UNKNOWN for Client: ...'
+      @client.expand_placeholders('[unknown]').should == 'UNKNOWN for Client: unknown'
     end
   end
 
   context 'with namespace' do
 
     it 'should parse referenced object fields' do
-      @detail1.expand_placeholders('[master.string_field]').should == 'foo'
-      @detail1.expand_placeholders('[master.string_field] [int_field]').should == 'foo 1001'
+      @client.expand_placeholders('[company.name]').should == 'BigMoney Inc.'
+      @client.expand_placeholders('[company.name] [number]').should == 'BigMoney Inc. 1001'
     end
 
     it 'should parse self referenced field' do
-      @detail1.expand_placeholders('[detail.int_field]').should == '1001'
-      @detail1.expand_placeholders('[detail.master.string_field] [detail.int_field]').should == 'foo 1001'
+      @client.expand_placeholders('[client.number]').should == '1001'
+      @client.expand_placeholders('[client.company.name] [client.number]').should == 'BigMoney Inc. 1001'
     end
 
     it 'should parse multiple steps' do
-      @detail1.expand_placeholders('[master.side.field]').should == '123'
+      @client.expand_placeholders('[company.user.email]').should == 'a@b.com'
     end
 
   end
@@ -133,52 +133,52 @@ describe 'Placeholder substitution' do
   context 'with empty fields' do
 
     it 'should parse valid but empty placeholder group with empty string' do
-      master = Master.new
-      master.details = []
-      master.expand_placeholders('[details][int_field][/details]').should == ''
+      company = Company.new
+      company.clients = []
+      company.expand_placeholders('[clients][number][/clients]').should == ''
     end
 
     it 'should parse single item group with empty string' do
-      @master.expand_placeholders('[details.10.int_field]').should == ''
+      @company.expand_placeholders('[clients.10.number]').should == ''
     end
 
-    it 'should parse related object field with empty string' do
-      @master.string_field = nil
-      @detail1.expand_placeholders('[master.string_field]').should == ''
+    it 'should parse related object email with empty string' do
+      @company.name = nil
+      @client.expand_placeholders('[company.name]').should == ''
     end
 
     it 'should parse empty related object with empty string' do
-      @detail1.master = nil
-      @detail1.expand_placeholders('[master.string_field]').should == ''
+      @client.company = nil
+      @client.expand_placeholders('[company.name]').should == ''
     end
   end
 
   context 'with collection' do
     it 'should expand' do
-      @master.expand_placeholders('[details][int_field]\n[/details]').should == '1001\n1002\n'
-      @master.expand_placeholders('[details]Test:[int_field][/details]').should == 'Test:1001Test:1002'
-      @master.expand_placeholders("[details][int_field]\n[/details]").should == "1001\n1002\n"
-      @master.expand_placeholders('[details][foo][/details]').should == 'UNKNOWN for Detail: fooUNKNOWN for Detail: foo'
+      @company.expand_placeholders('[clients][number]\n[/clients]').should == '1001\n1002\n'
+      @company.expand_placeholders('[clients]Test:[number][/clients]').should == 'Test:1001Test:1002'
+      @company.expand_placeholders("[clients][number]\n[/clients]").should == "1001\n1002\n"
+      @company.expand_placeholders('[clients][foo][/clients]').should == 'UNKNOWN for Client: fooUNKNOWN for Client: foo'
     end
 
     it 'should expand single item ' do
-      @master.expand_placeholders('[details.1.int_field]').should == '1001'
-      @master.expand_placeholders('[details.2.int_field]').should == '1002'
+      @company.expand_placeholders('[clients.1.number]').should == '1001'
+      @company.expand_placeholders('[clients.2.number]').should == '1002'
     end
 
     it 'should show error for missing closing' do
-      @master.expand_placeholders('[details][int_field]').should == 'END MISSING FOR detailsUNKNOWN for Master: int_field'
+      @company.expand_placeholders('[clients][number]').should == 'END MISSING FOR clientsUNKNOWN for Company: number'
     end
   end
 
   context 'with custom formatter' do
     before :each do
-      I18n.locale = :en_master
+      I18n.locale = :en_company
     #    Thread.current[:default_currency_format] = I18n.t(:'number.currency.format')
     end
 
     xit 'should format money' do
-      @record.expand_placeholders('[money_field]').should == '$12.34'
+      @client.expand_placeholders('[money_field]').should == '$12.34'
     end
   end
 

@@ -14,7 +14,7 @@ module KingPlaceholder
         state :matching do
           on_entry :parse
         end
-        trans :matching, :finished_matching, :finished, :cleanup
+        trans :matching, :finished_matching, :finished
         context machine_context
       end
     end
@@ -77,10 +77,6 @@ module KingPlaceholder
         @result.gsub!(@placeholder, "UNKNOWN for #{obj.class.to_s}: #{@field}")
       end
       @sm.finished_matching
-    end
-
-    def cleanup
-
     end
 
     private
