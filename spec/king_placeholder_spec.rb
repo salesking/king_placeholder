@@ -150,7 +150,9 @@ describe 'Placeholder substitution' do
     it 'should parse empty related object with empty string' do
       @client.company = nil
       @client.expand_placeholders('[company.name]').should == ''
+      @client.expand_placeholders('[client.company.name]').should == ''
     end
+
   end
 
   context 'with collection' do
